@@ -9,6 +9,7 @@ import Maybe exposing (withDefault)
 import Http
 import SpotifyApi
 import Time exposing (Time, second)
+import Css
 
 
 type alias Model =
@@ -52,6 +53,25 @@ view m =
     div [] [ selectRouteView m ]
 
 
+styles =
+    Css.asPairs >> Html.Attributes.style
+
+
+btn : List (Attribute msg) -> List (Html msg) -> Html msg
+btn attrs =
+    button
+        ([ class "btn btn-outline-primary"
+         , styles
+            [ Css.marginRight (Css.px 5)
+            , Css.marginTop (Css.px 5)
+            , Css.width (Css.px 55)
+            , Css.height (Css.px 40)
+            ]
+         ]
+            ++ attrs
+        )
+
+
 selectRouteView : Model -> Html Msg
 selectRouteView m =
     case m.routes of
@@ -63,34 +83,33 @@ selectRouteView m =
 
         Authenticated tk ->
             let
-                btnclass =
-                    class "btn btn-outline-primary"
-
                 currentlyPlaying =
                     Maybe.map
                         (\song ->
-                            [ div []
+                            div []
                                 [ img [ src song.imageUrl ] []
                                 , div [] [ text (song.name) ]
                                 , div [] [ text (song.artist) ]
-                                , button [ btnclass, onClick Previous ] [ text "<<" ]
-                                , button [ btnclass, onClick Play ] [ text "|>" ]
-                                , button [ btnclass, onClick Pause ] [ text "||" ]
-                                , button [ btnclass, onClick Next ] [ text ">>" ]
+                                , btn [ onClick Previous ] [ text "<<" ]
+                                , btn [ onClick Play ] [ text "|>" ]
+                                , btn [ onClick Pause ] [ text "||" ]
+                                , btn [ onClick Next ] [ text ">>" ]
                                 ]
-                            ]
                         )
                         m.songPlaying
 
                 nothingPlaying =
-                    [ div [] [ text "Nothing is played currently" ] ]
+                    div [] [ text "Nothing is played currently" ]
+
+                playlistsPart =
+                    div [] [ text "Playlists:" ]
 
                 highlightIfSongIsPlayingIsIn : SpotifyApi.Playlist -> Maybe SpotifyApi.Song -> List (Attribute Msg)
                 highlightIfSongIsPlayingIsIn playlist song =
                     case song of
                         Just s ->
                             if List.any (\id -> id == s.id) playlist.songs then
-                                [ disabled True ]
+                                [ styles [ Css.borderColor (Css.rgb 216 2 32) ], disabled True ]
                             else
                                 [ onClick (AddToPlaylist playlist s) ]
 
@@ -98,19 +117,19 @@ selectRouteView m =
                             [ disabled True ]
 
                 playlistButton playlistId =
-                    button [ btnclass, onClick (PlayPlaylist playlistId) ] [ text "|>" ]
+                    btn [ onClick (PlayPlaylist playlistId) ] [ text "|>" ]
 
                 playlistView =
                     m.playlists
                         |> List.map
                             (\playlist ->
                                 div []
-                                    [ button (btnclass :: (highlightIfSongIsPlayingIsIn playlist m.songPlaying)) [ text playlist.name ]
+                                    [ btn (highlightIfSongIsPlayingIsIn playlist m.songPlaying) [ text playlist.name ]
                                     , playlistButton playlist.id
                                     ]
                             )
             in
-                div [] ((Maybe.withDefault nothingPlaying currentlyPlaying) ++ playlistView)
+                div [] ((Maybe.withDefault nothingPlaying currentlyPlaying) :: playlistsPart :: playlistView)
 
         AuthenticationFailed ->
             div [] [ text "Authentication failed" ]
