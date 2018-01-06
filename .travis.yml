@@ -1,0 +1,16 @@
+language: node_js
+node_js:
+- 8.5.0
+before_script:
+- npm install -g create-elm-app
+script: elm-app build
+deploy:
+  provider: s3
+  access_key_id: AKIAJRT3QZUDENHSRSVA
+  secret_access_key:
+    secure: NzlA+8oDpatRTdyV1P5+2HS8BjVCFWdE7tK6k5LILZj3f5hCS30qxjQpVSt97m3vgtKaipOMiiBYz2Kl7YjkcMf629N8Pw3Buuf40ds2Xq77Ii7WH+qq1gEHX8FIcqNmsIkhIZT87sargD0FddTSHoRWlAfIgmOicSWr4PJnTW6HNNscT9ahBwVUogx00TnXB04Oc/znl/BoUDP3HIX/igwaqER7EX9Snwjg1bbMlihLh+/98EX/QuJodApwD2vDVxT0V4gJvi5aFtncOtG4VLd7iDQrBY2hL4+F0eU8vkSza4OqAQ7FaDFvUQGH/rRBoDtTGm+aRFooi52irx9WdlY7J3yBOcK7dl9Q4aFL9NsW69ctiQSdG5GV4RtH2XxawTANsF0ieCHEAkVvVLXhiZ9AimEeCepzu68gftQdnCNyyG5FIxhcLnjDNsMofG5minFCx5oGc2yZceUxMdR5Qk3lVJcED8/N+oXFzz4UdbHLpp4co2pZ0GMKE0B5N5WL+zzcYXSbQE1zKCQtRRyi4mrn5eBTh1stRAWH32x9DzXxcypG7J83dRT7etdPTCT1Y83QM5Uwm6CSeP5qWp22GA+v/dML912TaJFeduLMRvwnlEBQG3ZcE+aBqaGN3S9IKEnWmJMnvZcQbjJps1iihPWe4XHEB7ooyHsqjXfvyxk=
+  bucket: spotify-play
+  acl: public_read
+  region: eu-central-1
+  local_dir: build
+  skip_cleanup: true
