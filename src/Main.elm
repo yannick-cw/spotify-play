@@ -3,7 +3,7 @@ module Main exposing (..)
 import Html exposing (div, Html, text, button, img, button, Attribute)
 import Html.Attributes exposing (src, disabled, class)
 import Html.Events exposing (onClick)
-import Navigation exposing (Location, load)
+import Navigation exposing (Location, load, newUrl)
 import Routing exposing (Route(..), parseLocation)
 import Maybe exposing (withDefault)
 import Http
@@ -147,6 +147,12 @@ update msg model =
         CurrentlyPlaying (Ok song) ->
             ( { model | songPlaying = Just song }, Cmd.none )
 
+        CurrentlyPlaying (Err (Http.BadStatus resp)) ->
+            if resp.status.code == 401 then
+                ( model, newUrl "" )
+            else
+                ( model, Cmd.none )
+
         CurrentlyPlaying (Err _) ->
             ( model, Cmd.none )
 
@@ -221,7 +227,7 @@ init model location =
     in
         case currentRoute of
             Home ->
-                ( model, load ("https://accounts.spotify.com/authorize?client_id=a83f2dbd775343ebbd1e116aedc0b204&response_type=token&redirect_uri=" ++ location.href ++ "authenticated" ++ "&scope=user-read-playback-state user-modify-playback-state playlist-read-private playlist-modify-private") )
+                ( model, loadToken location.href )
 
             Authenticated token ->
                 ( { model | routes = currentRoute, token = token }, Cmd.batch [ me token, fetchCurrentlyPlaying token, fetchPlaylists token ] )
@@ -241,6 +247,11 @@ reqWithAuth token url method expectT body =
         , timeout = Nothing
         , withCredentials = False
         }
+
+
+loadToken : String -> Cmd msg
+loadToken redirectHref =
+    load ("https://accounts.spotify.com/authorize?client_id=a83f2dbd775343ebbd1e116aedc0b204&response_type=token&redirect_uri=" ++ redirectHref ++ "authenticated" ++ "&scope=user-read-playback-state user-modify-playback-state playlist-read-private playlist-modify-private")
 
 
 me : String -> Cmd Msg

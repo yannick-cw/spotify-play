@@ -1,9 +1,15 @@
+sudo: required
 language: node_js
 node_js:
-- 8.5.0
-before_script:
+- '6'
+install:
 - npm install -g create-elm-app
-script: elm-app build
+before_script:
+- elm-app package install -y
+script:
+- elm-app build
+after_success:
+- echo Done!
 deploy:
   provider: s3
   access_key_id: AKIAJRT3QZUDENHSRSVA
@@ -14,6 +20,3 @@ deploy:
   region: eu-central-1
   local_dir: build
   skip_cleanup: true
-cache:
-  directories:
-    - elm-stuff/build-artifacts
