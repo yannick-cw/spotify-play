@@ -10,6 +10,7 @@ import Http
 import SpotifyApi
 import Time exposing (Time, second)
 import Css
+import Markdown
 
 
 type alias Model =
@@ -91,8 +92,8 @@ selectRouteView m =
                                 , div [] [ text (song.name) ]
                                 , div [] [ text (song.artist) ]
                                 , btn [ onClick Previous ] [ text "<<" ]
-                                , btn [ onClick Play ] [ text "|>" ]
-                                , btn [ onClick Pause ] [ text "||" ]
+                                , btn [ onClick Play ] [ Markdown.toHtml [] "&#9654;" ]
+                                , btn [ onClick Pause ] [ Markdown.toHtml [] "&#10074;&#10074;" ]
                                 , btn [ onClick Next ] [ text ">>" ]
                                 ]
                         )
@@ -117,7 +118,7 @@ selectRouteView m =
                             [ disabled True ]
 
                 playlistButton playlistId =
-                    btn [ onClick (PlayPlaylist playlistId) ] [ text "|>" ]
+                    btn [ onClick (PlayPlaylist playlistId) ] [ Markdown.toHtml [] "&#9654;" ]
 
                 playlistView =
                     m.playlists
