@@ -14,3 +14,6 @@ deploy:
   region: eu-central-1
   local_dir: build
   skip_cleanup: true
+cache:
+  directories:
+    - elm-stuff/build-artifacts
