@@ -12,7 +12,7 @@ import Time exposing (Time, second)
 
 
 type alias Model =
-    { routes : Route, songPlaying : Maybe SpotifyApi.Song, playlists : List SpotifyApi.Playlist, userId : String, token : String }
+    { routes : Route, songPlaying : Maybe SpotifyApi.Song, playlists : List SpotifyApi.Playlist, userId : String, token : String, l : Location }
 
 
 type Msg
@@ -35,7 +35,7 @@ type Msg
 main : Program Never Model Msg
 main =
     Navigation.program OnLocationChange
-        { init = init (Model Home Nothing [] "" "")
+        { init = \l -> init (Model Home Nothing [] "" "" l) l
         , view = view
         , update = update
         , subscriptions = subscriptions
@@ -149,7 +149,7 @@ update msg model =
 
         CurrentlyPlaying (Err (Http.BadStatus resp)) ->
             if resp.status.code == 401 then
-                ( model, newUrl "" )
+                ( model, loadToken model.l.href )
             else
                 ( model, Cmd.none )
 
