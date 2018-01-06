@@ -70,11 +70,12 @@ selectRouteView m =
                     Maybe.map
                         (\song ->
                             [ div []
-                                [ text ("Playing: " ++ song.name ++ " by " ++ song.artist)
-                                , img [ src song.imageUrl ] []
-                                , button [ btnclass, onClick Play ] [ text "play" ]
-                                , button [ btnclass, onClick Pause ] [ text "pause" ]
+                                [ img [ src song.imageUrl ] []
+                                , div [] [ text (song.name) ]
+                                , div [] [ text (song.artist) ]
                                 , button [ btnclass, onClick Previous ] [ text "<<" ]
+                                , button [ btnclass, onClick Play ] [ text "|>" ]
+                                , button [ btnclass, onClick Pause ] [ text "||" ]
                                 , button [ btnclass, onClick Next ] [ text ">>" ]
                                 ]
                             ]
