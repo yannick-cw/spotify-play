@@ -145,7 +145,6 @@ decodePlaylist =
 type alias Tracks =
     { items : List Track
     , next : Maybe String
-    , offset : Int
     }
 
 
@@ -159,9 +158,15 @@ type alias TrackId =
     }
 
 
-decodeTrackIds : Json.Decode.Decoder ( Int, Maybe String, List String )
+type alias PaginationRes =
+    { next : Maybe String
+    , tracks : List String
+    }
+
+
+decodeTrackIds : Json.Decode.Decoder PaginationRes
 decodeTrackIds =
-    Json.Decode.map (\tracks -> ( tracks.offset, tracks.next, tracks.items |> List.map (\t -> t.track.id) )) decodeTracks
+    Json.Decode.map (\tracks -> (PaginationRes tracks.next (tracks.items |> List.map (\t -> t.track.id)))) decodeTracks
 
 
 decodeTrack : Json.Decode.Decoder Track
@@ -181,7 +186,6 @@ decodeTracks =
     Json.Decode.Pipeline.decode Tracks
         |> Json.Decode.Pipeline.required "items" (Json.Decode.list decodeTrack)
         |> Json.Decode.Pipeline.required "next" (Json.Decode.nullable Json.Decode.string)
-        |> Json.Decode.Pipeline.required "offset" (Json.Decode.int)
 
 
 

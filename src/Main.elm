@@ -11,6 +11,7 @@ import SpotifyApi
 import Time exposing (Time, second, millisecond)
 import Css
 import Markdown
+import Pagination exposing (paginate)
 import Delay exposing (after)
 
 
@@ -22,7 +23,7 @@ type Msg
     = OnLocationChange Location
     | CurrentlyPlaying (Result Http.Error SpotifyApi.Song)
     | Playlists (Result Http.Error (List SpotifyApi.Playlist))
-    | PlaylistTracks String (Result Http.Error ( Int, Maybe String, List String ))
+    | PlaylistTracks String (Result Http.Error (List String))
     | TogglePlay (Result Http.Error String)
     | Me (Result Http.Error String)
     | PlaylistChange (Result Http.Error String)
@@ -179,14 +180,12 @@ filterPlaylists =
     List.filter (\p -> Debug.log p.name ((String.length p.name) == 1))
 
 
-addTracksToPlaylist : String -> List String -> Bool -> List SpotifyApi.Playlist -> List SpotifyApi.Playlist
-addTracksToPlaylist id tracks overwrite =
+addTracksToPlaylist : String -> List String -> List SpotifyApi.Playlist -> List SpotifyApi.Playlist
+addTracksToPlaylist id tracks =
     List.map
         (\p ->
-            if p.id == id && overwrite then
+            if p.id == id then
                 { p | songs = tracks }
-            else if p.id == id then
-                { p | songs = tracks ++ p.songs }
             else
                 p
         )
@@ -256,11 +255,8 @@ update msg model =
         Playlists (Err _) ->
             ( model, Cmd.none )
 
-        PlaylistTracks id (Ok ( offset, Nothing, tracks )) ->
-            ( { model | playlists = addTracksToPlaylist id tracks (offset == 0) model.playlists }, Cmd.none )
-
-        PlaylistTracks id (Ok ( offset, Just nextHref, tracks )) ->
-            ( { model | playlists = addTracksToPlaylist id tracks (offset == 0) model.playlists }, fetchPlaylistsTracks model.token nextHref id )
+        PlaylistTracks id (Ok tracks) ->
+            ( { model | playlists = addTracksToPlaylist id tracks model.playlists }, Cmd.none )
 
         PlaylistTracks _ (Err _) ->
             ( model, Cmd.none )
@@ -368,7 +364,14 @@ fetchPlaylists token =
 
 fetchPlaylistsTracks : String -> String -> String -> Cmd Msg
 fetchPlaylistsTracks token href playlistId =
-    Http.send (PlaylistTracks playlistId) (reqWithAuth token (href ++ "&fields=items(track(id)),next,offset") "GET" (Http.expectJson SpotifyApi.decodeTrackIds) Http.emptyBody)
+    paginate href
+        .next
+        (\url ->
+            (reqWithAuth token (url ++ "&fields=items(track(id)),next") "GET" (Http.expectJson SpotifyApi.decodeTrackIds) Http.emptyBody)
+        )
+        (\newTracks oldTracks -> (newTracks |> .tracks) ++ oldTracks)
+        []
+        (PlaylistTracks playlistId)
 
 
 addPlaylistTrack : String -> String -> String -> Cmd Msg
