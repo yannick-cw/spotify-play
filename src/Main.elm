@@ -32,6 +32,7 @@ type Msg
     | Next
     | Previous
     | AddToPlaylist SpotifyApi.Playlist SpotifyApi.Song
+    | RemoveFromPlaylist SpotifyApi.Playlist SpotifyApi.Song
     | UpdateCurrentlyPLaying
     | Tick Time
 
@@ -112,7 +113,7 @@ selectRouteView m =
                     case song of
                         Just s ->
                             if List.any (\id -> id == s.id) playlist.songs then
-                                [ styles [ Css.borderColor (Css.rgb 216 2 32) ], disabled True ]
+                                [ styles [ Css.borderColor (Css.rgb 216 2 32) ], onClick (RemoveFromPlaylist playlist s) ]
                             else
                                 [ onClick (AddToPlaylist playlist s) ]
 
@@ -175,7 +176,7 @@ sortPlaylists =
 
 filterPlaylists : List SpotifyApi.Playlist -> List SpotifyApi.Playlist
 filterPlaylists =
-    List.filter (\p -> (String.length p.name) == 1 || p.name == "TOYA")
+    List.filter (\p -> Debug.log p.name ((String.length p.name) == 1))
 
 
 addTracksToPlaylist : String -> List String -> Bool -> List SpotifyApi.Playlist -> List SpotifyApi.Playlist
@@ -264,13 +265,21 @@ update msg model =
         PlaylistTracks _ (Err _) ->
             ( model, Cmd.none )
 
+        RemoveFromPlaylist playlist song ->
+            ( model, removePlaylistTrack model.token playlist.href song.id )
+
         AddToPlaylist playlist song ->
             let
                 addToPlaylist =
                     addPlaylistTrack model.token playlist.href song.id
 
+                notDeleteFromOtoPlusMove p =
+                    not (playlist.name == "+" && p.name == "o")
+
                 deleteFromOthers =
-                    model.playlists |> List.filter (\p -> p.id /= playlist.id) |> List.map (\p -> removePlaylistTrack model.token p.href song.id)
+                    model.playlists
+                        |> List.filter (\p -> p.id /= playlist.id && (notDeleteFromOtoPlusMove p))
+                        |> List.map (\p -> removePlaylistTrack model.token p.href song.id)
             in
                 ( model, Cmd.batch (addToPlaylist :: deleteFromOthers) )
 
@@ -310,7 +319,7 @@ reqWithAuth token url method expectT body =
 
 loadToken : String -> Cmd msg
 loadToken redirectHref =
-    load ("https://accounts.spotify.com/authorize?client_id=a83f2dbd775343ebbd1e116aedc0b204&response_type=token&redirect_uri=" ++ redirectHref ++ "authenticated" ++ "&scope=user-read-playback-state user-modify-playback-state playlist-read-private playlist-modify-private")
+    load ("https://accounts.spotify.com/authorize?client_id=a83f2dbd775343ebbd1e116aedc0b204&response_type=token&redirect_uri=" ++ redirectHref ++ "authenticated" ++ "&scope=user-read-playback-state user-modify-playback-state playlist-read-private playlist-modify-private playlist-modify-public")
 
 
 me : String -> Cmd Msg
