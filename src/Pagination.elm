@@ -20,5 +20,5 @@ rec next resToNext nextToReq combineResults acc =
                         rec n resToNext nextToReq combineResults (combineResults res acc)
 
                     Nothing ->
-                        Task.succeed acc
+                        Task.succeed (combineResults res acc)
             )

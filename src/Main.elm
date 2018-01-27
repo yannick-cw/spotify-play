@@ -177,7 +177,7 @@ sortPlaylists =
 
 filterPlaylists : List SpotifyApi.Playlist -> List SpotifyApi.Playlist
 filterPlaylists =
-    List.filter (\p -> Debug.log p.name ((String.length p.name) == 1))
+    List.filter (\p -> (String.length p.name) == 1)
 
 
 addTracksToPlaylist : String -> List String -> List SpotifyApi.Playlist -> List SpotifyApi.Playlist
