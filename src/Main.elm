@@ -143,6 +143,36 @@ notFoundView =
     div [] [ text "Not Found" ]
 
 
+comparePlaylists : SpotifyApi.Playlist -> SpotifyApi.Playlist -> Order
+comparePlaylists playlist1 playlist2 =
+    case ( playlist1.name, playlist2.name ) of
+        ( "+", _ ) ->
+            LT
+
+        ( _, "+" ) ->
+            GT
+
+        ( "o", _ ) ->
+            LT
+
+        ( _, "o" ) ->
+            GT
+
+        ( "-", _ ) ->
+            LT
+
+        ( _, "-" ) ->
+            GT
+
+        ( _, _ ) ->
+            EQ
+
+
+sortPlaylists : List SpotifyApi.Playlist -> List SpotifyApi.Playlist
+sortPlaylists =
+    List.sortWith comparePlaylists
+
+
 filterPlaylists : List SpotifyApi.Playlist -> List SpotifyApi.Playlist
 filterPlaylists =
     List.filter (\p -> (String.length p.name) == 1 || p.name == "TOYA")
@@ -217,10 +247,10 @@ update msg model =
 
         Playlists (Ok p) ->
             let
-                filteredPlaylists =
-                    filterPlaylists p
+                newPlaylists =
+                    p |> filterPlaylists |> sortPlaylists
             in
-                ( { model | playlists = filteredPlaylists }, filteredPlaylists |> List.map (\p -> fetchPlaylistsTracks model.token (p.href ++ "/tracks?limit=100") p.id) |> Cmd.batch )
+                ( { model | playlists = newPlaylists }, newPlaylists |> List.map (\p -> fetchPlaylistsTracks model.token (p.href ++ "/tracks?limit=100") p.id) |> Cmd.batch )
 
         Playlists (Err _) ->
             ( model, Cmd.none )
