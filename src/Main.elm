@@ -8,9 +8,10 @@ import Routing exposing (Route(..), parseLocation)
 import Maybe exposing (withDefault)
 import Http
 import SpotifyApi
-import Time exposing (Time, second)
+import Time exposing (Time, second, millisecond)
 import Css
 import Markdown
+import Delay exposing (after)
 
 
 type alias Model =
@@ -31,6 +32,7 @@ type Msg
     | Next
     | Previous
     | AddToPlaylist SpotifyApi.Playlist SpotifyApi.Song
+    | UpdateCurrentlyPLaying
     | Tick Time
 
 
@@ -65,7 +67,7 @@ btn attrs =
          , styles
             [ Css.marginRight (Css.px 5)
             , Css.marginTop (Css.px 5)
-            , Css.width (Css.px 55)
+            , Css.width (Css.px 76)
             , Css.height (Css.px 40)
             ]
          ]
@@ -143,7 +145,7 @@ notFoundView =
 
 filterPlaylists : List SpotifyApi.Playlist -> List SpotifyApi.Playlist
 filterPlaylists =
-    List.filter (\p -> List.any (\s -> s == p.name) [ "-", "+", "o" ])
+    List.filter (\p -> (String.length p.name) == 1 || p.name == "TOYA")
 
 
 addTracksToPlaylist : String -> List String -> Bool -> List SpotifyApi.Playlist -> List SpotifyApi.Playlist
@@ -192,7 +194,13 @@ update msg model =
         Previous ->
             ( model, prev model.token )
 
-        TogglePlay _ ->
+        UpdateCurrentlyPLaying ->
+            ( model, fetchCurrentlyPlaying model.token )
+
+        TogglePlay (Ok _) ->
+            ( model, after 500 millisecond UpdateCurrentlyPLaying )
+
+        TogglePlay (Err _) ->
             ( model, Cmd.none )
 
         Me (Ok meId) ->
