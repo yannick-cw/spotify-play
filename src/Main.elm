@@ -13,6 +13,7 @@ import Css
 import Markdown
 import Pagination exposing (paginate)
 import Delay exposing (after)
+import Dict
 
 
 type alias Model =
@@ -191,6 +192,17 @@ addTracksToPlaylist id tracks =
         )
 
 
+deleteIfMovedTo : SpotifyApi.Playlist -> (SpotifyApi.Playlist -> Bool)
+deleteIfMovedTo playlist =
+    [ ( "+", \p -> p.name == "-" )
+    , ( "o", \p -> (p.name == "-" || p.name == "+") )
+    , ( "-", \p -> (p.name == "o" || p.name == "+") )
+    ]
+        |> Dict.fromList
+        |> Dict.get playlist.name
+        |> Maybe.withDefault (\_ -> False)
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -269,15 +281,12 @@ update msg model =
                 addToPlaylist =
                     addPlaylistTrack model.token playlist.href song.id
 
-                notDeleteFromOtoPlusMove p =
-                    not (playlist.name == "+" && p.name == "o")
-
-                deleteFromOthers =
+                deleteFromPlaylists =
                     model.playlists
-                        |> List.filter (\p -> p.id /= playlist.id && (notDeleteFromOtoPlusMove p))
+                        |> List.filter (deleteIfMovedTo playlist)
                         |> List.map (\p -> removePlaylistTrack model.token p.href song.id)
             in
-                ( model, Cmd.batch (addToPlaylist :: deleteFromOthers) )
+                ( model, Cmd.batch (addToPlaylist :: deleteFromPlaylists) )
 
         Tick _ ->
             ( model, fetchCurrentlyPlaying model.token )
