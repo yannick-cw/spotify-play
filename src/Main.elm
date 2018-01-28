@@ -66,7 +66,7 @@ styles =
 btn : List (Attribute msg) -> List (Html msg) -> Html msg
 btn attrs =
     button
-        ([ class "btn btn-outline-primary"
+        ([ class "btn btn-secondary"
          , styles
             [ Css.marginRight (Css.px 5)
             , Css.marginTop (Css.px 5)
