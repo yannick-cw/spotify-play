@@ -262,7 +262,11 @@ update msg model =
                 newPlaylists =
                     p |> filterPlaylists |> sortPlaylists
             in
-                ( { model | playlists = newPlaylists }, newPlaylists |> List.map (\p -> fetchPlaylistsTracks model.token (p.href ++ "/tracks?limit=100") p.id) |> Cmd.batch )
+                ( { model | playlists = newPlaylists }
+                , newPlaylists
+                    |> List.map (\p -> fetchPlaylistsTracks model.token (p.href ++ "/tracks?limit=100") p.id)
+                    |> Cmd.batch
+                )
 
         Playlists (Err _) ->
             ( model, Cmd.none )
@@ -303,7 +307,9 @@ init model location =
                 ( model, loadToken location.href )
 
             Authenticated token ->
-                ( { model | routes = currentRoute, token = token }, Cmd.batch [ me token, fetchCurrentlyPlaying token, fetchPlaylists token ] )
+                ( { model | routes = currentRoute, token = token }
+                , Cmd.batch [ me token, fetchCurrentlyPlaying token, fetchPlaylists token ]
+                )
 
             _ ->
                 ( { model | routes = currentRoute }, Cmd.none )
