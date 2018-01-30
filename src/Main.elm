@@ -240,7 +240,7 @@ update msg model =
             ( model, fetchCurrentlyPlaying model.token )
 
         TogglePlay (Ok _) ->
-            ( model, after 250 millisecond UpdateCurrentlyPLaying )
+            ( model, after 450 millisecond UpdateCurrentlyPLaying )
 
         TogglePlay (Err _) ->
             ( model, Cmd.none )
