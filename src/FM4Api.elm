@@ -50,13 +50,9 @@ decodeFM4Responses =
 lastPlayingSong : FM4Responses -> Maybe Song
 lastPlayingSong response =
     response
+        |> List.concatMap .items
+        |> List.sortBy .end
+        |> List.filter (\item -> item.isCompleted == False)
+        |> List.filterMap
+            (\item -> Maybe.map2 Song item.title item.interpreter)
         |> List.head
-        |> Maybe.andThen
-            (\res ->
-                res.items
-                    |> List.sortBy .end
-                    |> List.filter (\item -> item.isCompleted == False)
-                    |> List.filterMap
-                        (\item -> Maybe.map2 Song item.title item.interpreter)
-                    |> List.head
-            )
