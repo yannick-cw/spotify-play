@@ -3,6 +3,7 @@ module SpotifyApi
         ( decodeSong
         , Song
         , decodePlaylists
+        , decodeFoundSong
         , Playlist
         , decodeTrackIds
         , Me
@@ -103,6 +104,32 @@ decodeArtist =
 
 
 
+-- SearchRes model
+
+
+type alias Songs =
+    { songs : List SongInfo }
+
+
+decodeFoundSong : Json.Decode.Decoder (Maybe Song)
+decodeFoundSong =
+    decodeSearchRes
+        |> Json.Decode.map
+            (\songs ->
+                songs.songs
+                    |> List.head
+                    |> Maybe.map CurrentlyPlayingResponse
+                    |> Maybe.map currentPlayingToSong
+            )
+
+
+decodeSearchRes : Json.Decode.Decoder Songs
+decodeSearchRes =
+    Json.Decode.Pipeline.decode Songs
+        |> Json.Decode.Pipeline.requiredAt [ "tracks", "items" ] (Json.Decode.list decodeSongInfo)
+
+
+
 -- Playlists Model
 
 
@@ -140,6 +167,68 @@ decodePlaylist =
 
 
 -- Playlist Tracks
+--{
+--"tracks": {
+--"href": "https://api.spotify.com/v1/search?query=track%3APray+For+Me+artist%3AKendrick+Lamar+&type=track&market=DE&offset=0&limit=20",
+--"items": [
+--{
+--"album": {
+--"album_type": "single",
+--"artists": [
+--{
+--"external_urls": {
+--"spotify": "https://open.spotify.com/artist/1Xyo4u8uXC1ZmMpatF05PJ"
+--},
+--"href": "https://api.spotify.com/v1/artists/1Xyo4u8uXC1ZmMpatF05PJ",
+--"id": "1Xyo4u8uXC1ZmMpatF05PJ",
+--"name": "The Weeknd",
+--"type": "artist",
+--"uri": "spotify:artist:1Xyo4u8uXC1ZmMpatF05PJ"
+--},
+--{
+--"external_urls": {
+--"spotify": "https://open.spotify.com/artist/2YZyLoL8N0Wb9xBt1NhZWg"
+--},
+--"href": "https://api.spotify.com/v1/artists/2YZyLoL8N0Wb9xBt1NhZWg",
+--"id": "2YZyLoL8N0Wb9xBt1NhZWg",
+--"name": "Kendrick Lamar",
+--"type": "artist",
+--"uri": "spotify:artist:2YZyLoL8N0Wb9xBt1NhZWg"
+--}
+
+
+
+--],
+--"available_markets": [],
+--"external_urls": {
+--"spotify": "https://open.spotify.com/album/1mESN9Zy0787YRMuLqOY4j"
+--},
+--"href": "https://api.spotify.com/v1/albums/1mESN9Zy0787YRMuLqOY4j",
+--"id": "1mESN9Zy0787YRMuLqOY4j",
+--"images": [
+--{
+--"height": 640,
+--"url": "https://i.scdn.co/image/c6d179eef98885a3e2f9c50fb61518a3b9274d4b",
+--"width": 640
+--},
+--{
+--"height": 300,
+--"url": "https://i.scdn.co/image/779780d9880e529ab723041f7d98aa585809e2fe",
+--"width": 300
+--},
+--{
+--"height": 64,
+--"url": "https://i.scdn.co/image/a8aa7dde9d982322af36a141c0431ac105f25ec1",
+--"width": 64
+--}
+
+
+
+--],
+--"name": "Pray For Me (with Kendrick Lamar)",
+--"type": "album",
+--"uri": "spotify:album:1mESN9Zy0787YRMuLqOY4j"
+--},
 
 
 type alias Tracks =

@@ -1,9 +1,9 @@
 module Main exposing (..)
 
-import Html exposing (div, Html, text, button, img, button, Attribute)
-import Html.Attributes exposing (src, disabled, class)
+import Html exposing (div, ul, li, Html, text, button, img, button, Attribute, a)
+import Html.Attributes exposing (src, disabled, class, href, maxlength)
 import Html.Events exposing (onClick)
-import Navigation exposing (Location, load, newUrl)
+import Navigation exposing (Location, load, newUrl, modifyUrl)
 import Routing exposing (Route(..), parseLocation)
 import Maybe exposing (withDefault)
 import Http
@@ -14,17 +14,27 @@ import Markdown
 import Pagination exposing (paginate)
 import Delay exposing (after)
 import Dict
+import FM4Api exposing (lastPlayingSong)
 
 
 type alias Model =
-    { routes : Route, songPlaying : Maybe SpotifyApi.Song, playlists : List SpotifyApi.Playlist, userId : String, token : String, l : Location }
+    { routes : Route
+    , songPlaying : Maybe SpotifyApi.Song
+    , fm4SongPlaying : Maybe FM4Api.Song
+    , fm4SongPlayingInSpotify : Maybe SpotifyApi.Song
+    , playlists : List SpotifyApi.Playlist
+    , userId : String
+    , token : String
+    }
 
 
 type Msg
     = OnLocationChange Location
     | CurrentlyPlaying (Result Http.Error SpotifyApi.Song)
+    | CurrentlyFm4Playing (Result Http.Error (Maybe FM4Api.Song))
     | Playlists (Result Http.Error (List SpotifyApi.Playlist))
     | PlaylistTracks String (Result Http.Error (List String))
+    | FoundTracks (Result Http.Error (Maybe SpotifyApi.Song))
     | TogglePlay (Result Http.Error String)
     | Me (Result Http.Error String)
     | PlaylistChange (Result Http.Error String)
@@ -35,14 +45,16 @@ type Msg
     | Previous
     | AddToPlaylist SpotifyApi.Playlist SpotifyApi.Song
     | RemoveFromPlaylist SpotifyApi.Playlist SpotifyApi.Song
-    | UpdateCurrentlyPLaying
+    | UpdateCurrentlyPlaying
     | Tick Time
+    | GoToFm4
+    | GoToSpotify
 
 
 main : Program Never Model Msg
 main =
     Navigation.program OnLocationChange
-        { init = \l -> init (Model Home Nothing [] "" "" l) l
+        { init = init (Model Home Nothing Nothing Nothing [] "" "")
         , view = view
         , update = update
         , subscriptions = subscriptions
@@ -56,7 +68,13 @@ subscriptions model =
 
 view : Model -> Html Msg
 view m =
-    div [] [ selectRouteView m ]
+    div
+        [ styles
+            [ Css.maxWidth (Css.px 500)
+            , Css.margin Css.auto
+            ]
+        ]
+        [ selectRouteView m ]
 
 
 styles =
@@ -87,8 +105,14 @@ selectRouteView m =
         NotFoundRoute ->
             notFoundView
 
-        Authenticated tk ->
+        SpotifyView ->
             let
+                header =
+                    ul [ class "nav nav-tabs" ]
+                        [ li [ class "nav-item" ] [ a [ class "nav-link active", onClick GoToSpotify ] [ text "Spotify" ] ]
+                        , li [ class "nav-item" ] [ a [ class "nav-link", onClick GoToFm4 ] [ text "FM4" ] ]
+                        ]
+
                 currentlyPlaying =
                     Maybe.map
                         (\song ->
@@ -102,7 +126,6 @@ selectRouteView m =
                                 , btn [ onClick Next ] [ text ">>" ]
                                 ]
                         )
-                        m.songPlaying
 
                 nothingPlaying =
                     div [] [ text "Nothing is played currently" ]
@@ -135,7 +158,85 @@ selectRouteView m =
                                     ]
                             )
             in
-                div [] ((Maybe.withDefault nothingPlaying currentlyPlaying) :: playlistsPart :: playlistView)
+                div []
+                    [ header
+                    , div
+                        [ styles
+                            [ Css.borderBottom3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
+                            , Css.borderLeft3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
+                            , Css.borderRight3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
+                            , Css.borderRadius (Css.px 2)
+                            ]
+                        ]
+                        ((Maybe.withDefault nothingPlaying (currentlyPlaying m.songPlaying))
+                            :: playlistsPart
+                            :: playlistView
+                        )
+                    ]
+
+        Fm4View ->
+            let
+                header =
+                    ul [ class "nav nav-tabs" ]
+                        [ li [ class "nav-item" ] [ a [ class "nav-link", onClick GoToSpotify ] [ text "Spotify" ] ]
+                        , li [ class "nav-item" ] [ a [ class "nav-link active", onClick GoToFm4 ] [ text "FM4" ] ]
+                        ]
+
+                currentlyPlaying =
+                    Maybe.map
+                        (\song ->
+                            div []
+                                [ img [ src song.imageUrl ] []
+                                , div [] [ text (song.name) ]
+                                , div [] [ text (song.artist) ]
+                                ]
+                        )
+
+                nothingPlaying =
+                    div [] [ text "Nothing is played currently" ]
+
+                playlistsPart =
+                    div [] [ text "Playlists:" ]
+
+                highlightIfSongIsPlayingIsIn : SpotifyApi.Playlist -> Maybe SpotifyApi.Song -> List (Attribute Msg)
+                highlightIfSongIsPlayingIsIn playlist song =
+                    case song of
+                        Just s ->
+                            if List.any (\id -> id == s.id) playlist.songs then
+                                [ styles [ Css.borderColor (Css.rgb 216 2 32) ], onClick (RemoveFromPlaylist playlist s) ]
+                            else
+                                [ onClick (AddToPlaylist playlist s) ]
+
+                        Nothing ->
+                            [ disabled True ]
+
+                playlistView =
+                    m.playlists
+                        |> List.map
+                            (\playlist ->
+                                div []
+                                    [ btn (highlightIfSongIsPlayingIsIn playlist m.fm4SongPlayingInSpotify) [ text playlist.name ]
+                                    ]
+                            )
+            in
+                div []
+                    [ header
+                    , div
+                        [ styles
+                            [ Css.borderBottom3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
+                            , Css.borderLeft3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
+                            , Css.borderRight3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
+                            , Css.borderRadius (Css.px 2)
+                            ]
+                        ]
+                        ((Maybe.withDefault nothingPlaying (currentlyPlaying m.fm4SongPlayingInSpotify))
+                            :: playlistsPart
+                            :: playlistView
+                        )
+                    ]
+
+        Authenticated _ ->
+            div [] [ text "Authenticat" ]
 
         AuthenticationFailed ->
             div [] [ text "Authentication failed" ]
@@ -213,13 +314,25 @@ update msg model =
             ( { model | songPlaying = Just song }, Cmd.none )
 
         CurrentlyPlaying (Err (Http.BadStatus resp)) ->
-            if resp.status.code == 401 then
-                ( model, loadToken model.l.href )
+            if resp.status.code == 401 || resp.status.code == 400 then
+                ( model, modifyUrl "/" )
             else
                 ( model, Cmd.none )
 
         CurrentlyPlaying (Err _) ->
             ( model, Cmd.none )
+
+        CurrentlyFm4Playing (Ok song) ->
+            ( { model | fm4SongPlaying = song }, song |> Maybe.map (searchTrack model.token) |> Maybe.withDefault Cmd.none )
+
+        CurrentlyFm4Playing (Err err) ->
+            ( model, Debug.log (toString err) Cmd.none )
+
+        FoundTracks (Ok song) ->
+            ( { model | fm4SongPlayingInSpotify = song }, Cmd.none )
+
+        FoundTracks (Err err) ->
+            ( model, Debug.log (toString err) Cmd.none )
 
         Play ->
             ( model, play model.token )
@@ -236,11 +349,11 @@ update msg model =
         Previous ->
             ( model, prev model.token )
 
-        UpdateCurrentlyPLaying ->
+        UpdateCurrentlyPlaying ->
             ( model, fetchCurrentlyPlaying model.token )
 
         TogglePlay (Ok _) ->
-            ( model, after 450 millisecond UpdateCurrentlyPLaying )
+            ( model, after 450 millisecond UpdateCurrentlyPlaying )
 
         TogglePlay (Err _) ->
             ( model, Cmd.none )
@@ -293,7 +406,13 @@ update msg model =
                 ( model, Cmd.batch (addToPlaylist :: deleteFromPlaylists) )
 
         Tick _ ->
-            ( model, fetchCurrentlyPlaying model.token )
+            ( model, Cmd.batch [ fetchCurrentlyPlaying model.token, fm4CurrentlyPlaying ] )
+
+        GoToSpotify ->
+            ( model, newUrl "/spotify" )
+
+        GoToFm4 ->
+            ( model, newUrl "/fm4" )
 
 
 init : Model -> Location -> ( Model, Cmd Msg )
@@ -307,8 +426,8 @@ init model location =
                 ( model, loadToken location.href )
 
             Authenticated token ->
-                ( { model | routes = currentRoute, token = token }
-                , Cmd.batch [ me token, fetchCurrentlyPlaying token, fetchPlaylists token ]
+                ( { model | routes = SpotifyView, token = token }
+                , Cmd.batch [ me token, fetchCurrentlyPlaying token, fetchPlaylists token, fm4CurrentlyPlaying, modifyUrl "/spotify" ]
                 )
 
             _ ->
@@ -398,6 +517,18 @@ addPlaylistTrack token href songId =
         Http.send PlaylistChange (reqWithAuth token (href ++ "/tracks" ++ query) "POST" Http.expectString Http.emptyBody)
 
 
+searchTrack : String -> FM4Api.Song -> Cmd Msg
+searchTrack token song =
+    let
+        href =
+            "https://api.spotify.com/v1"
+
+        query =
+            "?q=track:" ++ song.title ++ " artist:" ++ song.interpreter ++ "&type=track"
+    in
+        Http.send FoundTracks (reqWithAuth token (href ++ "/search" ++ query) "GET" (Http.expectJson SpotifyApi.decodeFoundSong) Http.emptyBody)
+
+
 removePlaylistTrack : String -> String -> String -> Cmd Msg
 removePlaylistTrack token href songId =
     let
@@ -405,3 +536,12 @@ removePlaylistTrack token href songId =
             "{\"tracks\": [{\"uri\": \"spotify:track:" ++ songId ++ "\"}]}"
     in
         Http.send PlaylistChange (reqWithAuth token (href ++ "/tracks") "DELETE" Http.expectString (Http.stringBody "application/json" body))
+
+
+fm4CurrentlyPlaying : Cmd Msg
+fm4CurrentlyPlaying =
+    let
+        fm4Href =
+            "https://audioapi.orf.at/fm4/api/json/current/live"
+    in
+        Http.send CurrentlyFm4Playing (Http.get fm4Href FM4Api.decodeFM4Responses)

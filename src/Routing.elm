@@ -7,6 +7,8 @@ import UrlParser exposing (map, top, Parser, parsePath, oneOf, s, (<?>), string,
 type Route
     = Home
     | Authenticated String
+    | SpotifyView
+    | Fm4View
     | AuthenticationFailed
     | NotFoundRoute
 
@@ -16,6 +18,8 @@ matchers =
     oneOf
         [ map Home top
         , map maybeAuth (s "authenticated" <?> stringParam "access_token")
+        , map SpotifyView (s "spotify")
+        , map Fm4View (s "fm4")
         ]
 
 
