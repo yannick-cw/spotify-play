@@ -50,10 +50,20 @@ nav isSpotify =
                 ( "", " active" )
             else
                 ( " active", "" )
+
+        item active goTo msg =
+            li [ class "nav-item" ]
+                [ a
+                    [ class ("nav-link" ++ active)
+                    , onClick goTo
+                    , styles [ Css.fontSize (Css.px 20) ]
+                    ]
+                    [ text msg ]
+                ]
     in
         ul [ class "nav nav-tabs" ]
-            [ li [ class "nav-item" ] [ a [ class ("nav-link" ++ spotifyActive), onClick GoToSpotify ] [ text "Spotify" ] ]
-            , li [ class "nav-item" ] [ a [ class ("nav-link" ++ fm4Active), onClick GoToFm4 ] [ text "FM4" ] ]
+            [ item spotifyActive GoToSpotify "Spotify"
+            , item fm4Active GoToFm4 "FM4"
             ]
 
 
