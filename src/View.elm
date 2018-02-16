@@ -53,10 +53,10 @@ nav isSpotify =
 
         item active goTo msg =
             li [ class "nav-item" ]
-                [ Html.span
+                [ a
                     [ class ("nav-link" ++ active)
                     , onClick goTo
-                    , styles [ Css.fontSize (Css.px 20) ]
+                    , styles [ Css.fontSize (Css.px 20), Css.cursor Css.pointer ]
                     ]
                     [ text msg ]
                 ]
