@@ -118,7 +118,7 @@ playlistView playlists songPlaying withButton =
 
 
 playingBox : List (Html msg) -> Html msg
-playingBox =
+playingBox elements =
     div
         [ styles
             [ Css.borderBottom3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
@@ -127,6 +127,7 @@ playingBox =
             , Css.borderRadius (Css.px 2)
             ]
         ]
+        [ div [ styles [ Css.marginBottom (Css.px 10) ] ] elements ]
 
 
 selectRouteView : Model -> Html Msg
