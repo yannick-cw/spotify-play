@@ -1,54 +1,17 @@
 module Main exposing (..)
 
-import Html exposing (div, ul, li, Html, text, button, img, button, Attribute, a)
-import Html.Attributes exposing (src, disabled, class, href, maxlength)
-import Html.Events exposing (onClick)
 import Navigation exposing (Location, load, newUrl, modifyUrl)
 import Routing exposing (Route(..), parseLocation)
 import Maybe exposing (withDefault)
 import Http
 import SpotifyApi
-import Time exposing (Time, second, millisecond)
-import Css
-import Markdown
 import Pagination exposing (paginate)
 import Delay exposing (after)
+import Time exposing (Time, second, millisecond)
 import Dict
 import FM4Api exposing (lastPlayingSong)
-
-
-type alias Model =
-    { routes : Route
-    , songPlaying : Maybe SpotifyApi.Song
-    , fm4SongPlaying : Maybe FM4Api.Song
-    , fm4SongPlayingInSpotify : Maybe SpotifyApi.Song
-    , playlists : List SpotifyApi.Playlist
-    , userId : String
-    , token : String
-    }
-
-
-type Msg
-    = OnLocationChange Location
-    | CurrentlyPlaying (Result Http.Error SpotifyApi.Song)
-    | CurrentlyFm4Playing (Result Http.Error (Maybe FM4Api.Song))
-    | Playlists (Result Http.Error (List SpotifyApi.Playlist))
-    | PlaylistTracks String (Result Http.Error (List String))
-    | FoundTracks (Result Http.Error (Maybe SpotifyApi.Song))
-    | TogglePlay (Result Http.Error String)
-    | Me (Result Http.Error String)
-    | PlaylistChange (Result Http.Error String)
-    | Play
-    | PlayPlaylist String
-    | Pause
-    | Next
-    | Previous
-    | AddToPlaylist SpotifyApi.Playlist SpotifyApi.Song
-    | RemoveFromPlaylist SpotifyApi.Playlist SpotifyApi.Song
-    | UpdateCurrentlyPlaying
-    | Tick Time
-    | GoToFm4
-    | GoToSpotify
+import View exposing (view)
+import Model exposing (Model, Msg(..))
 
 
 main : Program Never Model Msg
@@ -64,187 +27,6 @@ main =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Time.every (5 * second) Tick
-
-
-view : Model -> Html Msg
-view m =
-    div
-        [ styles
-            [ Css.maxWidth (Css.px 500)
-            , Css.margin Css.auto
-            ]
-        ]
-        [ selectRouteView m ]
-
-
-styles =
-    Css.asPairs >> Html.Attributes.style
-
-
-btn : List (Attribute msg) -> List (Html msg) -> Html msg
-btn attrs =
-    button
-        ([ class "btn btn-secondary"
-         , styles
-            [ Css.marginRight (Css.px 5)
-            , Css.marginTop (Css.px 5)
-            , Css.width (Css.px 76)
-            , Css.height (Css.px 40)
-            ]
-         ]
-            ++ attrs
-        )
-
-
-selectRouteView : Model -> Html Msg
-selectRouteView m =
-    case m.routes of
-        Home ->
-            div [] [ text "Being redirected" ]
-
-        NotFoundRoute ->
-            notFoundView
-
-        SpotifyView ->
-            let
-                header =
-                    ul [ class "nav nav-tabs" ]
-                        [ li [ class "nav-item" ] [ a [ class "nav-link active", onClick GoToSpotify ] [ text "Spotify" ] ]
-                        , li [ class "nav-item" ] [ a [ class "nav-link", onClick GoToFm4 ] [ text "FM4" ] ]
-                        ]
-
-                currentlyPlaying =
-                    Maybe.map
-                        (\song ->
-                            div []
-                                [ img [ src song.imageUrl ] []
-                                , div [] [ text (song.name) ]
-                                , div [] [ text (song.artist) ]
-                                , btn [ onClick Previous ] [ text "<<" ]
-                                , btn [ onClick Play ] [ Markdown.toHtml [] "&#9654;" ]
-                                , btn [ onClick Pause ] [ Markdown.toHtml [] "&#10074;&#10074;" ]
-                                , btn [ onClick Next ] [ text ">>" ]
-                                ]
-                        )
-
-                nothingPlaying =
-                    div [] [ text "Nothing is played currently" ]
-
-                playlistsPart =
-                    div [] [ text "Playlists:" ]
-
-                highlightIfSongIsPlayingIsIn : SpotifyApi.Playlist -> Maybe SpotifyApi.Song -> List (Attribute Msg)
-                highlightIfSongIsPlayingIsIn playlist song =
-                    case song of
-                        Just s ->
-                            if List.any (\id -> id == s.id) playlist.songs then
-                                [ styles [ Css.borderColor (Css.rgb 216 2 32) ], onClick (RemoveFromPlaylist playlist s) ]
-                            else
-                                [ onClick (AddToPlaylist playlist s) ]
-
-                        Nothing ->
-                            [ disabled True ]
-
-                playlistButton playlistId =
-                    btn [ onClick (PlayPlaylist playlistId) ] [ Markdown.toHtml [] "&#9654;" ]
-
-                playlistView =
-                    m.playlists
-                        |> List.map
-                            (\playlist ->
-                                div []
-                                    [ btn (highlightIfSongIsPlayingIsIn playlist m.songPlaying) [ text playlist.name ]
-                                    , playlistButton playlist.id
-                                    ]
-                            )
-            in
-                div []
-                    [ header
-                    , div
-                        [ styles
-                            [ Css.borderBottom3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
-                            , Css.borderLeft3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
-                            , Css.borderRight3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
-                            , Css.borderRadius (Css.px 2)
-                            ]
-                        ]
-                        ((Maybe.withDefault nothingPlaying (currentlyPlaying m.songPlaying))
-                            :: playlistsPart
-                            :: playlistView
-                        )
-                    ]
-
-        Fm4View ->
-            let
-                header =
-                    ul [ class "nav nav-tabs" ]
-                        [ li [ class "nav-item" ] [ a [ class "nav-link", onClick GoToSpotify ] [ text "Spotify" ] ]
-                        , li [ class "nav-item" ] [ a [ class "nav-link active", onClick GoToFm4 ] [ text "FM4" ] ]
-                        ]
-
-                currentlyPlaying =
-                    Maybe.map
-                        (\song ->
-                            div []
-                                [ img [ src song.imageUrl ] []
-                                , div [] [ text (song.name) ]
-                                , div [] [ text (song.artist) ]
-                                ]
-                        )
-
-                nothingPlaying =
-                    div [] [ text "Nothing is played currently" ]
-
-                playlistsPart =
-                    div [] [ text "Playlists:" ]
-
-                highlightIfSongIsPlayingIsIn : SpotifyApi.Playlist -> Maybe SpotifyApi.Song -> List (Attribute Msg)
-                highlightIfSongIsPlayingIsIn playlist song =
-                    case song of
-                        Just s ->
-                            if List.any (\id -> id == s.id) playlist.songs then
-                                [ styles [ Css.borderColor (Css.rgb 216 2 32) ], onClick (RemoveFromPlaylist playlist s) ]
-                            else
-                                [ onClick (AddToPlaylist playlist s) ]
-
-                        Nothing ->
-                            [ disabled True ]
-
-                playlistView =
-                    m.playlists
-                        |> List.map
-                            (\playlist ->
-                                div []
-                                    [ btn (highlightIfSongIsPlayingIsIn playlist m.fm4SongPlayingInSpotify) [ text playlist.name ]
-                                    ]
-                            )
-            in
-                div []
-                    [ header
-                    , div
-                        [ styles
-                            [ Css.borderBottom3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
-                            , Css.borderLeft3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
-                            , Css.borderRight3 (Css.px 1) Css.solid (Css.rgb 221 221 221)
-                            , Css.borderRadius (Css.px 2)
-                            ]
-                        ]
-                        ((Maybe.withDefault nothingPlaying (currentlyPlaying m.fm4SongPlayingInSpotify))
-                            :: playlistsPart
-                            :: playlistView
-                        )
-                    ]
-
-        Authenticated _ ->
-            div [] [ text "Authenticat" ]
-
-        AuthenticationFailed ->
-            div [] [ text "Authentication failed" ]
-
-
-notFoundView : Html msg
-notFoundView =
-    div [] [ text "Not Found" ]
 
 
 comparePlaylists : SpotifyApi.Playlist -> SpotifyApi.Playlist -> Order
