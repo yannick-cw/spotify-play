@@ -107,8 +107,14 @@ update msg model =
         CurrentlyFm4Playing (Ok song) ->
             ( { model | fm4SongPlaying = song }, song |> Maybe.map (searchTrack model.token) |> Maybe.withDefault Cmd.none )
 
-        CurrentlyFm4Playing (Err err) ->
-            ( model, Debug.log (toString err) Cmd.none )
+        CurrentlyFm4Playing (Err (Http.BadStatus resp)) ->
+            if resp.status.code == 401 || resp.status.code == 400 then
+                ( model, modifyUrl "/" )
+            else
+                ( model, Cmd.none )
+
+        CurrentlyFm4Playing (Err _) ->
+            ( model, Cmd.none )
 
         FoundTracks (Ok song) ->
             ( { model | fm4SongPlayingInSpotify = song }, Cmd.none )

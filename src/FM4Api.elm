@@ -3,6 +3,7 @@ module FM4Api exposing (decodeFM4Responses, lastPlayingSong, Song)
 import Json.Encode
 import Json.Decode
 import Json.Decode.Pipeline
+import Regex
 
 
 type alias Song =
@@ -45,6 +46,11 @@ decodeFM4Response =
 decodeFM4Responses : Json.Decode.Decoder (Maybe Song)
 decodeFM4Responses =
     (Json.Decode.list decodeFM4Response) |> Json.Decode.map lastPlayingSong
+
+
+cleanSong : Song -> Song
+cleanSong song =
+    { song | interpreter = Regex.replace Regex.All (Regex.regex "\\.ft") (\_ -> " ") song.interpreter }
 
 
 lastPlayingSong : FM4Responses -> Maybe Song
