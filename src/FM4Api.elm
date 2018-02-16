@@ -12,6 +12,7 @@ type alias Song =
 type alias Item =
     { isCompleted : Bool
     , end : Int
+    , state : String
     , title : Maybe String
     , interpreter : Maybe String
     }
@@ -30,6 +31,7 @@ decodeItem =
     Json.Decode.Pipeline.decode Item
         |> Json.Decode.Pipeline.required "isCompleted" (Json.Decode.bool)
         |> Json.Decode.Pipeline.required "end" (Json.Decode.int)
+        |> Json.Decode.Pipeline.required "state" (Json.Decode.string)
         |> Json.Decode.Pipeline.optional "title" (Json.Decode.maybe Json.Decode.string) Nothing
         |> Json.Decode.Pipeline.optional "interpreter" (Json.Decode.maybe Json.Decode.string) Nothing
 

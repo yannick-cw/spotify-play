@@ -188,7 +188,14 @@ update msg model =
                 ( model, Cmd.batch (addToPlaylist :: deleteFromPlaylists) )
 
         Tick _ ->
-            ( model, Cmd.batch [ fetchCurrentlyPlaying model.token, fm4CurrentlyPlaying ] )
+            ( model
+            , if model.routes == SpotifyView then
+                fetchCurrentlyPlaying model.token
+              else if model.routes == Fm4View then
+                fm4CurrentlyPlaying
+              else
+                Cmd.none
+            )
 
         GoToSpotify ->
             ( model, newUrl "/spotify" )
