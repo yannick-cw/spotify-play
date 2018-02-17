@@ -50,7 +50,7 @@ decodeFM4Responses =
 
 cleanSong : Song -> Song
 cleanSong song =
-    { song | interpreter = Regex.replace Regex.All (Regex.regex "\\.ft") (\_ -> " ") song.interpreter }
+    { song | interpreter = Regex.replace Regex.All (Regex.regex "ft\\.") (\_ -> " ") song.interpreter }
 
 
 lastPlayingSong : FM4Responses -> Maybe Song
@@ -62,3 +62,4 @@ lastPlayingSong response =
         |> List.filterMap
             (\item -> Maybe.map2 Song item.title item.interpreter)
         |> List.head
+        |> Maybe.map cleanSong
