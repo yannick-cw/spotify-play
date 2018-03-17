@@ -89,7 +89,7 @@ highlightIfSongIsPlayingIsIn playlist song =
     case song of
         Just s ->
             if List.any (\id -> id == s.id) playlist.songs then
-                [ styles [ Css.borderColor (Css.rgb 216 2 32) ], onClick (RemoveFromPlaylist playlist s) ]
+                [ styles [ Css.borderColor (Css.rgb 50 205 50) ], onClick (RemoveFromPlaylist playlist s) ]
             else
                 [ onClick (AddToPlaylist playlist s) ]
 
